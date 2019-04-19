@@ -7,7 +7,7 @@ class SkillTesting(MycroftSkill):
     def __init__(self):
         MycroftSkill.__init__(self)
         # self.data_file = '/'.join([self.file_system.path, 'phrases.txt'])
-        self.data_file = '/home/pi/.mycroft/skills/SkillTesting/phrases.txt'
+        self.data_file = '/home/pi/.mycroft/phrases.txt'
 
     @intent_file_handler('testing.skill.intent')
     def handle_testing_skill(self, message):
