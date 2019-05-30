@@ -1,0 +1,34 @@
+name: Skill Testing Skill
+skillMetadata:
+  sections:
+    - name: Input data
+      fields:
+        - name: test_identifier
+          type: text
+          label: A title for this test run
+          value:
+          placeholder: title for this test run
+
+        - name: phrases
+          type: text
+          label: Add phrases to test
+          value:
+          placeholder: input data for tests
+
+        - name: text_delimeter
+          type: text
+          label: What character surrounds each phrase
+          value: "\""
+          placeholder: "\""
+
+        - name: phrase_delimeter
+          type: text
+          label: What character separates phrases
+          value: ","
+          placeholder: ","
+
+        - name: delay
+          type: number
+          label: Delay between phrases in seconds
+          value: "30"
+          placeholder: "30"
