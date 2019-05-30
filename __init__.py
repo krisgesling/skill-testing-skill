@@ -49,7 +49,7 @@ class SkillTesting(MycroftSkill):
     def read_utterances(self, message):
         # Add extra utterance to call final code
         # Why? Workaround as code in handler after phrase loop doesn't execute
-        self.input_utterances.append('reading sequence completed')
+        self.input_utterances.append(self.translate('trigger.reading.complete'))
         self.add_event('mycroft.skill.handler.start', self.detect_handler)
         for i, phrase in enumerate(self.input_utterances):
             phrase = phrase.strip().strip('"').strip()
