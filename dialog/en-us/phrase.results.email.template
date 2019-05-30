@@ -1,0 +1,10 @@
+Hi there
+
+New test results are available.
+
+  - Test Title: {{test_identifier}}
+  - Device Name: {{device_name}}
+  - Tests Run: {{num_tests}}
+  - Results: {{url}}
+
+This data is in a csv format that you can import into a spreadsheet. If the SkillName and IntentHandler columns are empty, the phrase did not successfully trigger a Skill.
