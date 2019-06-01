@@ -3,12 +3,14 @@ Internal utterance testing tool
 
 ## About
 ### "read all utterances"
-Enter a list of phrases in Skill settings to verify which Skill and intent handler is triggered. Phrase list should be in format "phrase one, phrase two, phrase three".
+Enter a list of phrases in Skill settings to verify which Skill and intent handler is triggered. Phrase list should be in format:
+> phrase one, phrase two, phrase three
+
+If a phrase contains a comma it must be surrounded with quotation marks:
+> phrase one, "phrase, two", phrase three
 
 Additional options include:
 - test_identifier - title of the test for your benefit eg 'weather phrases' - default blank
-- phrase_delimeter - the character between phrases - default ','
-- text_delimeter - the quotation mark or other character surrounding each phrase - default blank
 - delay - the period in seconds between each phrase - default 30
 
 Results will be uploaded to termbin.com in csv format and the link will be emailed to you. A csv file of the results will also be saved on the device at: `~/.mycroft/skills/SkillTesting/reading-output/{test_identifier}.csv`. Note that when creating the filename, characters not in [a-z, A-Z, 0-9, [.\_-]] will be removed eg "weather phrases" will become "weatherphrases.csv". This file can be used to generate integration tests for all phrases.
@@ -28,7 +30,7 @@ If a test is unable to be removed, Mycroft will notify you, and a list of remain
 
 
 ## Examples
-* "- read all phrases"
+* "- read all utterances"
 * "- generate integration tests"
 * "- run integration tests"
 * "- remove generated tests"
@@ -41,9 +43,3 @@ krisgesling (@krisgesling)
 
 ## Tags
 #testing
-
-## Timing
-From either emittance of utterance or recognition of utterance:
-- recognizer_loop:utterance
-To start of audio output
-- recognizer_loop:audio_output_start

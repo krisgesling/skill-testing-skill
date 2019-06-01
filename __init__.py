@@ -2,12 +2,14 @@ import copy
 import csv
 import json
 import os
+import re
 from subprocess import check_output, Popen
 from time import sleep
 from mycroft import MycroftSkill, intent_file_handler
 from mycroft.api import DeviceApi
 from mycroft.configuration import Configuration
 from mycroft.messagebus.message import Message
+from mycroft.util.format import nice_duration
 # from test.integrationtests.skills.skill_tester import
 join = os.path.join
 
@@ -24,18 +26,27 @@ class SkillTesting(MycroftSkill):
         self.reset_data_vars()
 
     def initialize(self):
+        self.update_settings()
+
+    def update_settings(self):
         self.test_identifier = self.settings.get('test_identifier', '')
-        self.phrase_delimeter = self.settings.get('phrase_delimeter', ',')
-        self.text_delimeter = self.settings.get('text_delimeter', '"')
-        # TODO Fix input for phrase delimiter occurence between text_delimeter
-        # split by regex?
-        self.input_utterances = self.settings.get('phrases',
-                                                'what is my ip, who made you'
-                                                ).split(self.phrase_delimeter)
+        for l in csv.reader([self.settings.get('phrases', '')],
+                            skipinitialspace=True):
+            self.input_utterances = l
         self.delay = int(self.settings.get('delay', '30'))
 
     @intent_file_handler('read.utterances.intent')
     def read_utterances(self, message):
+        self.update_settings()
+        num_tests = len(self.input_utterances)
+        # TODO Currently a guess, modify once we have better data
+        avg_response_time = 20
+        estimated_length = nice_duration(num_tests * (
+                                         self.delay + avg_response_time))
+        self.speak_dialog('reading.started',
+                          data={'num': num_tests,
+                                'estimated_length': estimated_length})
+        sleep(self.delay)
         # Add extra utterance to call final code
         # Why? Workaround as code in handler after phrase loop doesn't execute
         self.input_utterances.append(self.translate('trigger.reading.complete'))
@@ -52,9 +63,26 @@ class SkillTesting(MycroftSkill):
                                       'lang': 'en-us'}))
             sleep(self.delay)
 
+    def detect_handler(self, m):
+        handler_message_data = json.loads(m.serialize())['data']
+        self.log.debug(handler_message_data)
+        if 'name' in handler_message_data.keys():
+            name, intent = handler_message_data['name'].split('.')
+            if name != 'SkillTesting':
+                self.reading_output[len(self.reading_output)-1].extend(
+                (name, intent))
+
+    def detect_response(self, m):
+        message_data = json.loads(m.serialize())['data']
+        self.log.debug(message_data)
+        if 'utterance' in message_data.keys():
+            self.reading_output[len(self.reading_output)-1].append(
+                (message_data['utterance']))
+
     @intent_file_handler('reading.complete.intent')
     def handle_reading_complete(self, message):
-        self.log.debug('Finished reading. Building output...')
+        sleep(self.delay)
+        self.speak_dialog('reading.complete')
         # Save locally to potentially generate tests from
         # Remove unsupported characters from filename
         file_name = ''.join(
@@ -77,30 +105,13 @@ class SkillTesting(MycroftSkill):
             }
         email = '\n'.join(self.translate_template('phrase.results.email', data))
         subject = self.translate('phrase.results.email.subject', data)
-        self.send_email(subject, email)
+        # self.send_email(subject, email)
         # Reset variables and finish
         self.reset_data_vars()
-        self.speak_dialog('reading.complete')
 
     def reset_data_vars(self):
         self.reading_output = [['Utterance', 'Skill', 'IntentHandler', 'Response']]
         self.files_created = []
-
-    def detect_handler(self, m):
-        handler_message_data = json.loads(m.serialize())['data']
-        self.log.debug(handler_message_data)
-        if 'name' in handler_message_data.keys():
-            name, intent = handler_message_data['name'].split('.')
-            if name != 'SkillTesting':
-                self.reading_output[len(self.reading_output)-1].extend(
-                (name, intent))
-
-    def detect_response(self, m):
-        message_data = json.loads(m.serialize())['data']
-        self.log.debug(message_data)
-        if 'utterance' in message_data.keys():
-            self.reading_output[len(self.reading_output)-1].append(
-                (message_data['utterance']))
 
     def get_device_name(self):
         try:

@@ -15,18 +15,6 @@ skillMetadata:
           value:
           placeholder: input data for tests
 
-        - name: text_delimeter
-          type: text
-          label: What character surrounds each phrase
-          value: "\""
-          placeholder: "\""
-
-        - name: phrase_delimeter
-          type: text
-          label: What character separates phrases
-          value: ","
-          placeholder: ","
-
         - name: delay
           type: number
           label: Delay between phrases in seconds
