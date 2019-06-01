@@ -2,7 +2,7 @@ import copy
 import csv
 import json
 import os
-import re
+import time
 from subprocess import check_output, Popen
 from time import sleep
 from mycroft import MycroftSkill, intent_file_handler
@@ -52,12 +52,13 @@ class SkillTesting(MycroftSkill):
         self.input_utterances.append(self.translate('trigger.reading.complete'))
         self.add_event('mycroft.skill.handler.start', self.detect_handler)
         self.add_event('speak', self.detect_response)
+        self.add_event('recognizer_loop:audio_output_start', self.detect_audio_out)
         for i, phrase in enumerate(self.input_utterances):
             phrase = phrase.strip().strip('"').strip()
+            # If not the last, as last utterance triggers completion.
             if i < len(self.input_utterances) - 1:
-                # TODO would it be better to
-                # catch the utterance from the messagebus
                 self.reading_output.append([phrase])
+                self.test_start_time = time.time()
             self.bus.emit(Message("recognizer_loop:utterance",
                                       {'utterances': [phrase],
                                       'lang': 'en-us'}))
@@ -69,15 +70,25 @@ class SkillTesting(MycroftSkill):
         if 'name' in handler_message_data.keys():
             name, intent = handler_message_data['name'].split('.')
             if name != 'SkillTesting':
-                self.reading_output[len(self.reading_output)-1].extend(
+                self.reading_output[-1].extend(
                 (name, intent))
 
     def detect_response(self, m):
         message_data = json.loads(m.serialize())['data']
         self.log.debug(message_data)
         if 'utterance' in message_data.keys():
-            self.reading_output[len(self.reading_output)-1].append(
+            # if len(self.reading_output[-1]) == 3:
+            #     duration = time.time() - self.test_start_time
+            #     self.reading_output[-1].append(int(duration * 1000) / 1000)
+            self.reading_output[-1].append(
                 (message_data['utterance']))
+
+    def detect_audio_out(self, m):
+        message_data = json.loads(m.serialize())['data']
+        self.log.debug('audio output started')
+        if len(self.reading_output[-1]) == 4:
+            duration = time.time() - self.test_start_time
+            self.reading_output[-1].insert(3, int(duration * 1000) / 1000)
 
     @intent_file_handler('reading.complete.intent')
     def handle_reading_complete(self, message):
@@ -105,12 +116,13 @@ class SkillTesting(MycroftSkill):
             }
         email = '\n'.join(self.translate_template('phrase.results.email', data))
         subject = self.translate('phrase.results.email.subject', data)
-        self.send_email(subject, email)
+        # self.send_email(subject, email)
         # Reset variables and finish
         self.reset_data_vars()
 
     def reset_data_vars(self):
-        self.reading_output = [['Utterance', 'Skill', 'IntentHandler', 'Response']]
+        self.reading_output = [['Utterance', 'Skill', 'IntentHandler', \
+                                'ResponseTime', 'Response']]
         self.files_created = []
 
     def get_device_name(self):
