@@ -38,9 +38,12 @@ class SkillTesting(MycroftSkill):
     @intent_file_handler('read.utterances.intent')
     def read_utterances(self, message):
         self.update_settings()
+        if len(self.input_utterances) == 0:
+            self.speak_dialog('reading.no.utterances')
+            return
         num_tests = len(self.input_utterances)
         # TODO Currently a guess, modify once we have better data
-        avg_response_time = 20
+        avg_response_time = 10
         estimated_length = nice_duration(num_tests * (
                                          self.delay + avg_response_time))
         self.speak_dialog('reading.started',
@@ -77,6 +80,9 @@ class SkillTesting(MycroftSkill):
         message_data = json.loads(m.serialize())['data']
         self.log.debug(message_data)
         if 'utterance' in message_data.keys():
+            # TODO don't add final utterance to output
+            #  and \
+            # message_data['utterance'] != self.translate('reading.complete'):
             # if len(self.reading_output[-1]) == 3:
             #     duration = time.time() - self.test_start_time
             #     self.reading_output[-1].append(int(duration * 1000) / 1000)
@@ -116,7 +122,7 @@ class SkillTesting(MycroftSkill):
             }
         email = '\n'.join(self.translate_template('phrase.results.email', data))
         subject = self.translate('phrase.results.email.subject', data)
-        # self.send_email(subject, email)
+        self.send_email(subject, email)
         # Reset variables and finish
         self.reset_data_vars()
 
