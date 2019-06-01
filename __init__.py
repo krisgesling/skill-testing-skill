@@ -105,7 +105,7 @@ class SkillTesting(MycroftSkill):
             }
         email = '\n'.join(self.translate_template('phrase.results.email', data))
         subject = self.translate('phrase.results.email.subject', data)
-        # self.send_email(subject, email)
+        self.send_email(subject, email)
         # Reset variables and finish
         self.reset_data_vars()
 
