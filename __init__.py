@@ -57,15 +57,22 @@ class SkillTesting(MycroftSkill):
         self.add_event('speak', self.detect_response)
         self.add_event('recognizer_loop:audio_output_start', self.detect_audio_out)
         for i, phrase in enumerate(self.input_utterances):
+            # can_proceed = False
             phrase = phrase.strip().strip('"').strip()
             # If not the last, as last utterance triggers completion.
             if i < len(self.input_utterances) - 1:
                 self.reading_output.append([phrase])
                 self.test_start_time = time.time()
             self.bus.emit(Message("recognizer_loop:utterance",
-                                      {'utterances': [phrase],
-                                      'lang': 'en-us'}))
+                                 {'utterances': [phrase],
+                                  'lang': 'en-us'}))
             sleep(self.delay)
+            # while not can_proceed:
+            #     # Potentially wait x seconds after audio_output_end
+            #
+            #     # If no new message has started, then proceed.
+            #     sleep(1)
+            #     can_proceed = True
 
     def detect_handler(self, m):
         handler_message_data = json.loads(m.serialize())['data']
@@ -79,21 +86,17 @@ class SkillTesting(MycroftSkill):
     def detect_response(self, m):
         message_data = json.loads(m.serialize())['data']
         self.log.debug(message_data)
-        if 'utterance' in message_data.keys():
-            # TODO don't add final utterance to output
-            #  and \
-            # message_data['utterance'] != self.translate('reading.complete'):
-            # if len(self.reading_output[-1]) == 3:
-            #     duration = time.time() - self.test_start_time
-            #     self.reading_output[-1].append(int(duration * 1000) / 1000)
+        if 'utterance' in message_data.keys() and \
+            message_data['utterance'] != self.translate('reading.complete'):
             self.reading_output[-1].append(
                 (message_data['utterance']))
 
     def detect_audio_out(self, m):
+        time_response_started = time.time()
         message_data = json.loads(m.serialize())['data']
         self.log.debug('audio output started')
         if len(self.reading_output[-1]) == 4:
-            duration = time.time() - self.test_start_time
+            duration = time_response_started - self.test_start_time
             self.reading_output[-1].insert(3, int(duration * 1000) / 1000)
 
     @intent_file_handler('reading.complete.intent')
