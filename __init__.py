@@ -29,11 +29,16 @@ class SkillTesting(MycroftSkill):
         self.update_settings()
 
     def update_settings(self):
-        self.test_identifier = self.settings.get('test_identifier', '')
-        for l in csv.reader([self.settings.get('phrases', '')],
-                            skipinitialspace=True):
-            self.input_utterances = l
-        self.delay = int(self.settings.get('delay', '30'))
+        if self.settings is not None:
+            self.test_identifier = self.settings.get('test_identifier', '')
+            for l in csv.reader([self.settings.get('phrases', '')],
+                                skipinitialspace=True):
+                self.input_utterances = l
+            self.delay = int(self.settings.get('delay', '30'))
+        else:
+            self.log.debug('Settings not available, trying again in 5s')
+            sleep(5)
+            self.update_settings()
 
     @intent_file_handler('read.utterances.intent')
     def read_utterances(self, message):
