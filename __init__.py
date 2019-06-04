@@ -16,17 +16,16 @@ join = os.path.join
 class SkillTesting(MycroftSkill):
     def __init__(self):
         MycroftSkill.__init__(self)
-        self.file_path_reading_output = '/'.join([self.file_system.path,
-                                                  'reading-output'])
-        if not os.path.isdir(self.file_path_reading_output):
-            os.mkdir(self.file_path_reading_output)
         self.reset_data_vars()
-        self.file_path_test = 'test/intent'
 
     def initialize(self):
         self.update_settings()
         self.file_path_base = get_skills_dir()
-
+        self.file_path_reading_output = '/'.join([self.file_system.path,
+                                                  'reading-output'])
+        if not os.path.isdir(self.file_path_reading_output):
+            os.mkdir(self.file_path_reading_output)
+        self.file_path_test = 'test/intent'
 
     def update_settings(self):
         if self.settings is not None:
