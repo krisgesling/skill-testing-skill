@@ -16,17 +16,17 @@ join = os.path.join
 class SkillTesting(MycroftSkill):
     def __init__(self):
         MycroftSkill.__init__(self)
+        self.file_path_reading_output = '/'.join([self.file_system.path,
+                                                  'reading-output'])
+        if not os.path.isdir(self.file_path_reading_output):
+            os.mkdir(self.file_path_reading_output)
+        self.reset_data_vars()
+        self.file_path_test = 'test/intent'
 
     def initialize(self):
         self.update_settings()
         self.file_path_base = get_skills_dir()
-        self.file_path_test = 'test/intent'
-        self.file_path_reading_output = '/'.join([
-        self.file_system.path,
-        'reading-output'])
-        if not os.path.isdir(self.file_path_reading_output):
-            os.mkdir(self.file_path_reading_output)
-            self.reset_data_vars()
+
 
     def update_settings(self):
         if self.settings is not None:
@@ -61,6 +61,7 @@ class SkillTesting(MycroftSkill):
         self.add_event('mycroft.skill.handler.start', self.detect_handler)
         self.add_event('speak', self.detect_response)
         self.add_event('recognizer_loop:audio_output_start', self.detect_audio_out)
+        self.add_event('complete_intent_failure', self.detect_intent_failure)
         for i, phrase in enumerate(self.input_utterances):
             # can_proceed = False
             phrase = phrase.strip().strip('"').strip()
@@ -80,6 +81,7 @@ class SkillTesting(MycroftSkill):
             #     can_proceed = True
 
     def detect_handler(self, m):
+        # TODO detect complete_intent_failure
         handler_message_data = json.loads(m.serialize())['data']
         self.log.debug(handler_message_data)
         if 'name' in handler_message_data.keys():
@@ -87,6 +89,10 @@ class SkillTesting(MycroftSkill):
             if name != 'SkillTesting':
                 self.reading_output[-1].extend(
                 (name, intent))
+
+    def detect_intent_failure(self, m):
+        handler_message_data = json.loads(m.serialize())['data']
+        print(handler_message_data)
 
     def detect_response(self, m):
         message_data = json.loads(m.serialize())['data']
