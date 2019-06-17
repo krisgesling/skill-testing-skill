@@ -55,54 +55,47 @@ class SkillTesting(MycroftSkill):
         self.add_event('mycroft.skill.handler.start', self.detect_handler)
         self.add_event('speak', self.detect_response)
         self.add_event('recognizer_loop:audio_output_start', self.detect_audio_out)
-        self.add_event('complete_intent_failure', self.detect_intent_failure)
         for i, phrase in enumerate(self.input_utterances):
-            # can_proceed = False
+            if self.test_result:
+                self.all_test_results.append(self.test_result)
+            self.test_result = []
             phrase = phrase.strip().strip('"').strip()
             # If not the last, as last utterance triggers completion.
             if i < len(self.input_utterances) - 1:
-                self.reading_output.append([phrase])
+                self.test_result.append(phrase)
                 self.test_start_time = time.time()
             self.bus.emit(Message("recognizer_loop:utterance",
                                  {'utterances': [phrase],
                                   'lang': 'en-us'}))
             sleep(self.delay)
-            # while not can_proceed:
-            #     # Potentially wait x seconds after audio_output_end
-            #
-            #     # If no new message has started, then proceed.
-            #     sleep(1)
-            #     can_proceed = True
+
 
     def detect_handler(self, m):
         handler_message_data = json.loads(m.serialize())['data']
         self.log.debug(handler_message_data)
-        if 'name' in handler_message_data.keys():
+        keys = handler_message_data.keys()
+        if 'name' in keys:
             name, intent = handler_message_data['name'].split('.')
             if name != 'SkillTesting':
-                self.reading_output[-1].extend(
-                (name, intent))
-
-    def detect_intent_failure(self, m):
-        # TODO detect complete_intent_failure
-        handler_message_data = json.loads(m.serialize())['data']
-        print(handler_message_data)
+                self.test_result.extend((name, intent))
 
     def detect_response(self, m):
         message_data = json.loads(m.serialize())['data']
         self.log.debug(message_data)
         if 'utterance' in message_data.keys() and \
             message_data['utterance'] != self.translate('reading.complete'):
-            self.reading_output[-1].append(
-                (message_data['utterance']))
+            if len(self.test_result) == 1:
+                self.test_result.extend(('FAILED','No intent triggered',message_data['utterance']))
+            else:
+                self.test_result.append((message_data['utterance']))
 
     def detect_audio_out(self, m):
         time_response_started = time.time()
         message_data = json.loads(m.serialize())['data']
         self.log.debug('audio output started')
-        if len(self.reading_output[-1]) == 4:
+        if len(self.test_result) == 4:
             duration = time_response_started - self.test_start_time
-            self.reading_output[-1].insert(3, int(duration * 1000) / 1000)
+            self.test_result.insert(3, int(duration * 1000) / 1000)
 
     @intent_file_handler('reading.complete.intent')
     def handle_reading_complete(self, message):
@@ -117,7 +110,7 @@ class SkillTesting(MycroftSkill):
         self.output_file = '/'.join([self.file_path_reading_output, file_name])
         with open(self.output_file, 'w') as f:
             writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            writer.writerows(self.reading_output)
+            writer.writerows(self.all_test_results)
         # Upload to Termbin
         upload_cmd = 'cat ' + self.output_file + ' | nc termbin.com 9999'
         url = check_output(upload_cmd, shell=True).decode().strip('\n\x00')
@@ -126,7 +119,7 @@ class SkillTesting(MycroftSkill):
             'test_identifier': self.test_identifier,
             'url': url,
             'device_name': self.get_device_name(),
-            'num_tests': len(self.reading_output) - 1
+            'num_tests': len(self.all_test_results) - 1
             }
         email = '\n'.join(self.translate_template('phrase.results.email', data))
         subject = self.translate('phrase.results.email.subject', data)
@@ -135,8 +128,9 @@ class SkillTesting(MycroftSkill):
         self.reset_data_vars()
 
     def reset_data_vars(self):
-        self.reading_output = [['Utterance', 'Skill', 'IntentHandler', \
+        self.all_test_results = [['Utterance', 'Skill', 'IntentHandler', \
                                 'ResponseTime', 'Response']]
+        self.test_result = []
         self.files_created = []
 
     def get_device_name(self):
