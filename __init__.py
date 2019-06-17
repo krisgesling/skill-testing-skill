@@ -28,21 +28,16 @@ class SkillTesting(MycroftSkill):
         self.file_path_test = 'test/intent'
 
     def update_settings(self):
-        if self.settings is not None:
-            self.test_identifier = self.settings.get('test_identifier', '')
-            for l in csv.reader([self.settings.get('phrases', '')],
-                                skipinitialspace=True):
-                self.input_utterances = l
-            self.delay = int(self.settings.get('delay', '30'))
-        else:
-            self.log.debug('Settings not available, trying again in 5s')
-            sleep(5)
-            self.update_settings()
+        self.test_identifier = self.settings.get('test_identifier', '')
+        self.input_utterances = list(csv.reader(
+                                    [self.settings.get('phrases', '')],
+                                    skipinitialspace=True))[0]
+        self.delay = int(self.settings.get('delay', '30'))
 
     @intent_file_handler('read.utterances.intent')
     def read_utterances(self, message):
         self.update_settings()
-        if len(self.input_utterances) == 0:
+        if not self.input_utterances:
             self.speak_dialog('reading.no.utterances')
             return
         num_tests = len(self.input_utterances)
@@ -80,7 +75,6 @@ class SkillTesting(MycroftSkill):
             #     can_proceed = True
 
     def detect_handler(self, m):
-        # TODO detect complete_intent_failure
         handler_message_data = json.loads(m.serialize())['data']
         self.log.debug(handler_message_data)
         if 'name' in handler_message_data.keys():
@@ -90,6 +84,7 @@ class SkillTesting(MycroftSkill):
                 (name, intent))
 
     def detect_intent_failure(self, m):
+        # TODO detect complete_intent_failure
         handler_message_data = json.loads(m.serialize())['data']
         print(handler_message_data)
 
