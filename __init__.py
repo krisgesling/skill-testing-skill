@@ -58,6 +58,7 @@ class SkillTesting(MycroftSkill):
         self.add_event('recognizer_loop:audio_output_start', self.detect_audio_out)
         self.add_event('recognizer_loop:record_begin', self.attempt_response)
         for i, phrase in enumerate(self.input_utterances):
+            # if previous single result exists add to output and reset
             if self.test_result:
                 self.all_test_results.append(self.test_result)
             self.test_result = []
@@ -81,24 +82,25 @@ class SkillTesting(MycroftSkill):
     def detect_handler(self, m):
         tick = time.time()
         handler_message_data = json.loads(m.serialize())['data']
-        self.log.debug(handler_message_data)
+        self.log.debug('Detected Skill handler: {}'.format(message_data))
         keys = handler_message_data.keys()
-        if not ('name' in keys or 'handler' in keys):
-            return
+        # Normal Skills
         if 'name' in keys:
             name, intent = handler_message_data['name'].split('.')
+            if name == 'SkillTesting':
+                return
+        # Fallback handler
         elif 'handler' in keys and len(self.test_result) == 1:
             name, intent = ('Fallback','No intent triggered')
         else:
             name, intent = (False, False)
-        if not name or name == 'SkillTesting':
             return
         self.test_result = [self.test_result[0], name, intent, self._get_timer_interval(tick)]
 
     def detect_response(self, m):
         tick = time.time()
         message_data = json.loads(m.serialize())['data']
-        self.log.debug(message_data)
+        self.log.debug('Detected spoken response: {}'.format(message_data))
         if 'utterance' in message_data.keys() and \
             message_data['utterance'] != self.translate('reading.complete'):
             if len(self.test_result) == 1:
@@ -111,7 +113,7 @@ class SkillTesting(MycroftSkill):
     def detect_audio_out(self, m):
         tick = time.time()
         message_data = json.loads(m.serialize())['data']
-        self.log.debug('audio output started')
+        self.log.debug('Detected audio output start: {}'.format(message_data))
         if len(self.test_result) == 6:
             self.test_result.insert(5, self._get_timer_interval(tick))
 
