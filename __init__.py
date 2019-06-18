@@ -55,11 +55,16 @@ class SkillTesting(MycroftSkill):
         self.add_event('mycroft.skill.handler.start', self.detect_handler)
         self.add_event('speak', self.detect_response)
         self.add_event('recognizer_loop:audio_output_start', self.detect_audio_out)
+        self.add_event('recognizer_loop:record_begin', self.attempt_response)
         for i, phrase in enumerate(self.input_utterances):
             if self.test_result:
                 self.all_test_results.append(self.test_result)
             self.test_result = []
+            self.responses = []
             phrase = phrase.strip().strip('"').strip()
+            if '>' in phrase:
+                phrase, *self.responses = phrase.split('>')
+                print("self.responses: {}".format(self.responses))
             # If not the last, as last utterance triggers completion.
             if i < len(self.input_utterances) - 1:
                 self.test_result.append(phrase)
@@ -96,6 +101,15 @@ class SkillTesting(MycroftSkill):
         if len(self.test_result) == 4:
             duration = time_response_started - self.test_start_time
             self.test_result.insert(3, int(duration * 1000) / 1000)
+
+    def attempt_response(self, m):
+        if self.responses:
+            this_response = self.responses.pop(0)
+            sleep(1)
+            self.bus.emit(Message("recognizer_loop:utterance",
+                                 {'utterances': [this_response],
+                                  'lang': 'en-us'}))
+            self.test_result.append(this_response)
 
     @intent_file_handler('reading.complete.intent')
     def handle_reading_complete(self, message):
@@ -134,6 +148,7 @@ class SkillTesting(MycroftSkill):
         self.all_test_results = [['Utterance', 'Skill', 'IntentHandler', \
                                 'ResponseTime', 'Response']]
         self.test_result = []
+        self.responses = []
         self.files_created = []
 
     def get_device_name(self):
