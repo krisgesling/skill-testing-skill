@@ -42,10 +42,9 @@ class SkillTesting(MycroftSkill):
             self.speak_dialog('reading.no.utterances')
             return
         num_tests = len(self.input_utterances)
-        self.log.debug(num_tests)
-        # TODO Currently a guess, modify once we have better data
+        self.log.debug('Running {} tests.'.format(num_tests))
         avg_response_time = 5
-        estimated_length = nice_duration(num_tests * (
+        estimated_length = nice_duration(self.delay * 2 + num_tests * (
                                          self.delay + avg_response_time))
         self.speak_dialog('reading.started',
                           data={'num': num_tests,
@@ -63,6 +62,7 @@ class SkillTesting(MycroftSkill):
                 self.all_test_results.append(self.test_result)
             self.test_result = []
             self.responses = []
+            # strip white space and text delimiters
             phrase = phrase.strip().strip('"').strip()
             # Extract any responses required for intent eg set timer>10 minutes
             if '>' in phrase:
@@ -90,10 +90,10 @@ class SkillTesting(MycroftSkill):
         elif 'handler' in keys and len(self.test_result) == 1:
             name, intent = ('Fallback','No intent triggered')
         else:
-            name = False
-        if name != 'SkillTesting':
-            self.test_result.extend((name, intent))
-            self.test_result.append(self._get_timer_interval(tick))
+            name, intent = (False, False)
+        if not name or name == 'SkillTesting':
+            return
+        self.test_result = [self.test_result[0], name, intent, self._get_timer_interval(tick)]
 
     def detect_response(self, m):
         tick = time.time()
