@@ -16,7 +16,7 @@ join = os.path.join
 class SkillTesting(MycroftSkill):
     def __init__(self):
         MycroftSkill.__init__(self)
-        self.reset_data_vars()
+        self.reset_test_env()
 
     def initialize(self):
         self.update_settings()
@@ -37,12 +37,14 @@ class SkillTesting(MycroftSkill):
     @intent_file_handler('read.utterances.intent')
     def read_utterances(self, message):
         self.update_settings()
+        sleep(10)
         if not self.input_utterances:
             self.speak_dialog('reading.no.utterances')
             return
         num_tests = len(self.input_utterances)
+        self.log.debug(num_tests)
         # TODO Currently a guess, modify once we have better data
-        avg_response_time = 10
+        avg_response_time = 5
         estimated_length = nice_duration(num_tests * (
                                          self.delay + avg_response_time))
         self.speak_dialog('reading.started',
@@ -62,9 +64,10 @@ class SkillTesting(MycroftSkill):
             self.test_result = []
             self.responses = []
             phrase = phrase.strip().strip('"').strip()
+            # Extract any responses required for intent eg set timer>10 minutes
             if '>' in phrase:
                 phrase, *self.responses = phrase.split('>')
-                print("self.responses: {}".format(self.responses))
+                self.log.debug("self.responses: {}".format(self.responses))
             # If not the last, as last utterance triggers completion.
             if i < len(self.input_utterances) - 1:
                 self.test_result.append(phrase)
@@ -76,31 +79,41 @@ class SkillTesting(MycroftSkill):
 
 
     def detect_handler(self, m):
+        tick = time.time()
         handler_message_data = json.loads(m.serialize())['data']
         self.log.debug(handler_message_data)
         keys = handler_message_data.keys()
+        if not ('name' in keys or 'handler' in keys):
+            return
         if 'name' in keys:
             name, intent = handler_message_data['name'].split('.')
-            if name != 'SkillTesting':
-                self.test_result.extend((name, intent))
+        elif 'handler' in keys and len(self.test_result) == 1:
+            name, intent = ('Fallback','No intent triggered')
+        else:
+            name = False
+        if name != 'SkillTesting':
+            self.test_result.extend((name, intent))
+            self.test_result.append(self._get_timer_interval(tick))
 
     def detect_response(self, m):
+        tick = time.time()
         message_data = json.loads(m.serialize())['data']
         self.log.debug(message_data)
         if 'utterance' in message_data.keys() and \
             message_data['utterance'] != self.translate('reading.complete'):
             if len(self.test_result) == 1:
-                self.test_result.extend(('FAILED','No intent triggered',message_data['utterance']))
+                self.test_result.extend(('FAILED','FAILED',message_data['utterance']))
             else:
                 self.test_result.append((message_data['utterance']))
+        if len(self.test_result) == 5:
+            self.test_result.insert(4, self._get_timer_interval(tick))
 
     def detect_audio_out(self, m):
-        time_response_started = time.time()
+        tick = time.time()
         message_data = json.loads(m.serialize())['data']
         self.log.debug('audio output started')
-        if len(self.test_result) == 4:
-            duration = time_response_started - self.test_start_time
-            self.test_result.insert(3, int(duration * 1000) / 1000)
+        if len(self.test_result) == 6:
+            self.test_result.insert(5, self._get_timer_interval(tick))
 
     def attempt_response(self, m):
         if self.responses:
@@ -110,6 +123,10 @@ class SkillTesting(MycroftSkill):
                                  {'utterances': [this_response],
                                   'lang': 'en-us'}))
             self.test_result.append(this_response)
+
+    def _get_timer_interval(self, tick):
+        duration = tick - self.test_start_time
+        return int(duration * 1000) / 1000
 
     @intent_file_handler('reading.complete.intent')
     def handle_reading_complete(self, message):
@@ -142,11 +159,12 @@ class SkillTesting(MycroftSkill):
         subject = self.translate('phrase.results.email.subject', data)
         self.send_email(subject, email)
         # Reset variables and finish
-        self.reset_data_vars()
+        self.reset_test_env()
 
-    def reset_data_vars(self):
+    def reset_test_env(self):
         self.all_test_results = [['Utterance', 'Skill', 'IntentHandler', \
-                                'ResponseTime', 'Response']]
+                                  'TimeToIntent', 'TimeToTextRes', \
+                                  'TimeToAudioRes', 'Responses']]
         self.test_result = []
         self.responses = []
         self.files_created = []
