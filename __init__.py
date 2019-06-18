@@ -100,6 +100,9 @@ class SkillTesting(MycroftSkill):
     @intent_file_handler('reading.complete.intent')
     def handle_reading_complete(self, message):
         sleep(self.delay)
+        self.remove_event('mycroft.skill.handler.start')
+        self.remove_event('speak')
+        self.remove_event('recognizer_loop:audio_output_start')
         self.speak_dialog('reading.complete')
         # Save locally to potentially generate tests from
         # Remove unsupported characters from filename
@@ -207,6 +210,9 @@ def get_skills_dir():
     )
 
 def stop(self):
+    self.remove_event('mycroft.skill.handler.start')
+    self.remove_event('speak')
+    self.remove_event('recognizer_loop:audio_output_start')
     pass
 
 def create_skill():
