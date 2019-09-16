@@ -82,7 +82,7 @@ class SkillTesting(MycroftSkill):
     def detect_handler(self, m):
         tick = time.time()
         handler_message_data = json.loads(m.serialize())['data']
-        self.log.debug('Detected Skill handler: {}'.format(message_data))
+        self.log.debug('Detected Skill handler: {}'.format(handler_message_data))
         keys = handler_message_data.keys()
         # Normal Skills
         if 'name' in keys:
