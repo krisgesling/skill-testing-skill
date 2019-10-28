@@ -2,6 +2,7 @@ import copy
 import csv
 import json
 import os
+from os.path import join
 import time
 from subprocess import check_output, Popen
 from time import sleep
@@ -10,8 +11,6 @@ from mycroft.api import DeviceApi
 from mycroft.configuration import Configuration
 from mycroft.messagebus.message import Message
 from mycroft.util.format import nice_duration
-# from test.integrationtests.skills.skill_tester import
-join = os.path.join
 
 class SkillTesting(MycroftSkill):
     def __init__(self):
