@@ -32,6 +32,23 @@ class SkillTesting(MycroftSkill):
         self.input_utterances = list(csv.reader(
                                     [self.settings.get('phrases', '')],
                                     skipinitialspace=True))[0]
+        if not self.input_utterances:
+            self.log.info('No remote phrases, reading local')
+            try:
+                local_phrases = os.path.join(
+                    self.file_system.path,
+                    'integration-tests.csv'
+                )
+                with open(local_phrases) as f:
+                    reader = csv.reader(f)
+                    utterances = list(reader)[0]
+                    self.input_utterances = [x.strip() for x in utterances]
+
+            except FileNotFoundError:
+                self.log.exception('No remote or local utterances found')
+        else:
+            self.log.info('Using remote phrases')
+
         self.delay = int(self.settings.get('delay', '30'))
 
     @intent_file_handler('read.utterances.intent')
