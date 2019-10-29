@@ -27,10 +27,12 @@ class SkillTesting(MycroftSkill):
         self.file_path_test = 'test/intent'
 
     def update_settings(self):
-        self.test_identifier = self.settings.get('test_identifier', '')
-        self.input_utterances = list(csv.reader(
-                                    [self.settings.get('phrases', '')],
-                                    skipinitialspace=True))[0]
+        self.input_utterances = False
+        self.test_identifier = self.settings.get('test_identifier')
+        remote_phrases = self.settings.get('phrases')
+        if remote_phrases is not None:
+            self.input_utterances = list(csv.reader([remote_phrases],
+                                         skipinitialspace=True))[0]
         if not self.input_utterances:
             self.log.info('No remote phrases, reading local')
             try:
