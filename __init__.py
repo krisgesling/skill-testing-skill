@@ -38,7 +38,7 @@ class SkillTesting(MycroftSkill):
             try:
                 local_phrases = os.path.join(
                     self.file_system.path,
-                    'integration-tests.csv'
+                    'utterances.csv'
                 )
                 with open(local_phrases) as f:
                     reader = csv.reader(f)
