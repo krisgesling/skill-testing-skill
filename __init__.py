@@ -2,6 +2,7 @@ import copy
 import csv
 import json
 import os
+from os.path import join
 import time
 from subprocess import check_output, Popen
 from time import sleep
@@ -10,8 +11,6 @@ from mycroft.api import DeviceApi
 from mycroft.configuration import Configuration
 from mycroft.messagebus.message import Message
 from mycroft.util.format import nice_duration
-# from test.integrationtests.skills.skill_tester import
-join = os.path.join
 
 class SkillTesting(MycroftSkill):
     def __init__(self):
@@ -28,10 +27,29 @@ class SkillTesting(MycroftSkill):
         self.file_path_test = 'test/intent'
 
     def update_settings(self):
-        self.test_identifier = self.settings.get('test_identifier', '')
-        self.input_utterances = list(csv.reader(
-                                    [self.settings.get('phrases', '')],
-                                    skipinitialspace=True))[0]
+        self.input_utterances = False
+        self.test_identifier = self.settings.get('test_identifier')
+        remote_phrases = self.settings.get('phrases')
+        if remote_phrases is not None:
+            self.input_utterances = list(csv.reader([remote_phrases],
+                                         skipinitialspace=True))[0]
+        if not self.input_utterances:
+            self.log.info('No remote phrases, reading local')
+            try:
+                local_phrases = os.path.join(
+                    self.file_system.path,
+                    'integration-tests.csv'
+                )
+                with open(local_phrases) as f:
+                    reader = csv.reader(f)
+                    utterances = list(reader)[0]
+                    self.input_utterances = [x.strip() for x in utterances]
+
+            except FileNotFoundError:
+                self.log.exception('No remote or local utterances found')
+        else:
+            self.log.info('Using remote phrases')
+
         self.delay = int(self.settings.get('delay', '30'))
 
     @intent_file_handler('read.utterances.intent')
