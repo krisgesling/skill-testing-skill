@@ -4,6 +4,7 @@ import json
 import os
 from os.path import join
 import time
+from datetime import datetime
 from subprocess import check_output, Popen
 from time import sleep
 from mycroft import MycroftSkill, intent_file_handler
@@ -157,6 +158,8 @@ class SkillTesting(MycroftSkill):
         self.speak_dialog('reading.complete')
         # Save locally to potentially generate tests from
         # Remove unsupported characters from filename
+        if self.test_identifier in (None, ''):
+            self.test_identifier = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
         file_name = ''.join(
             x for x in self.test_identifier \
             if (x.isalnum() or x in "._-")) + '.csv'
