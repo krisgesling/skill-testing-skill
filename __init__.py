@@ -42,8 +42,11 @@ class SkillTesting(MycroftSkill):
                     'utterances.csv'
                 )
                 with open(local_phrases) as f:
-                    reader = csv.reader(f)
-                    utterances = list(reader)[0]
+                    reader = list(csv.reader(f))
+                    if len(reader) == 1:
+                        utterances = reader[0]
+                    else:
+                        utterances = [ i[0] for i in reader ]
                     self.input_utterances = [x.strip() for x in utterances]
 
             except FileNotFoundError:
